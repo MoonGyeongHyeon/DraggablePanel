@@ -17,6 +17,8 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     public static final String TAG = "DraggablePanel";
 
     private float dX, dY;
+    private int deviceWidth, deviceHeight;
+    private int headerHeight;   // StatusBar + Toolbar
     private GestureDetectorCompat gestureDetector;
 
     public DraggablePanel(Context context) {
@@ -34,6 +36,21 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
 
     private void init() {
         gestureDetector = new GestureDetectorCompat(getContext(), this);
+        deviceWidth = getResources().getDisplayMetrics().widthPixels;
+        deviceHeight = getResources().getDisplayMetrics().heightPixels;
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
+        calculateHeaderHeight();
+    }
+
+    private void calculateHeaderHeight() {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+
+        headerHeight = location[1] - (int)getY();
     }
 
     @Override
@@ -67,11 +84,24 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
         Log.d(TAG, "onScroll");
-//        Log.d(TAG, "e1 x: " + e1.getRawX() + ", y: " + e1.getRawY());
-//        Log.d(TAG, "e2 x: " + e2.getRawX() + ", y: " + e2.getRawY());
+        float destX, destY;
+        destX = e2.getRawX() - dX;
+        destY = e2.getRawY() - dY;
+
+        if (destX < 0) {
+            destX = 0;
+        } else if (destX + getWidth() > deviceWidth) {
+            destX = deviceWidth - getWidth();
+        }
+        if (destY < 0) {
+            destY = 0;
+        } else if (destY + getHeight() > deviceHeight - headerHeight) {
+            destY = deviceHeight - headerHeight - getHeight();
+        }
+
         animate()
-                .x(e2.getRawX() - dX)
-                .y(e2.getRawY() - dY)
+                .x(destX)
+                .y(destY)
                 .setDuration(0)
                 .start();
 
