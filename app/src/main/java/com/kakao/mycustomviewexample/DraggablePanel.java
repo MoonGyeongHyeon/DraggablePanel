@@ -23,6 +23,9 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     private int maxWidth, maxHeight;
     private int headerHeight;   // StatusBar + Toolbar
     private GestureDetectorCompat gestureDetector;
+    private boolean isLocationReverted;
+    private float currentX, currentY;
+
 
     public DraggablePanel(Context context) {
         this(context, null);
@@ -41,6 +44,10 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         gestureDetector = new GestureDetectorCompat(getContext(), this);
     }
 
+    public void setLocationReverted(boolean locationReverted) {
+        isLocationReverted = locationReverted;
+    }
+
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
@@ -55,6 +62,9 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
             maxWidth = getWidth();
             maxHeight = getHeight();
         }
+
+        currentX = getX();
+        currentY = getY();
 
         calculateHeaderHeight();
     }
@@ -74,8 +84,18 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
 
+        if (isLocationReverted &&
+                event.getAction() == MotionEvent.ACTION_UP) {
+            Log.d(TAG, "onUp");
+            animate().x(currentX)
+                    .y(currentY)
+                    .setDuration(1000)
+                    .start();
+        }
+
         isConsumed |= gestureDetector.onTouchEvent(event);
         isConsumed |= super.onTouchEvent(event);
+
         return isConsumed;
     }
 

@@ -19,5 +19,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "LOG!");
             }
         });
+        draggablePanel.setLocationReverted(true);
     }
 }
