@@ -1,5 +1,6 @@
 package com.kakao.mycustomviewexample;
 
+import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.support.v4.view.GestureDetectorCompat;
@@ -7,6 +8,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.Window;
 import android.widget.RelativeLayout;
 
 /**
@@ -17,7 +20,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     public static final String TAG = "DraggablePanel";
 
     private float dX, dY;
-    private int deviceWidth, deviceHeight;
+    private int maxWidth, maxHeight;
     private int headerHeight;   // StatusBar + Toolbar
     private GestureDetectorCompat gestureDetector;
 
@@ -36,21 +39,35 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
 
     private void init() {
         gestureDetector = new GestureDetectorCompat(getContext(), this);
-        deviceWidth = getResources().getDisplayMetrics().widthPixels;
-        deviceHeight = getResources().getDisplayMetrics().heightPixels;
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
+        View parent = (View) getParent();
+
+        if (parent != null) {
+            maxWidth = parent.getWidth();
+            maxHeight = parent.getHeight();
+            Log.d(TAG, "wi: " + maxWidth + ", hei: " + maxHeight);
+        } else {
+            Log.d(TAG, "here");
+            maxWidth = getWidth();
+            maxHeight = getHeight();
+        }
+
         calculateHeaderHeight();
     }
 
     private void calculateHeaderHeight() {
-        int[] location = new int[2];
-        getLocationOnScreen(location);
+        Window window= ((Activity) getContext()).getWindow();
+        int contentViewHeight =
+                window.findViewById(Window.ID_ANDROID_CONTENT).getHeight();
+        int deviceHeight = getResources().getDisplayMetrics().heightPixels;
 
-        headerHeight = location[1] - (int)getY();
+        headerHeight = deviceHeight - contentViewHeight;
+
+        Log.d(TAG, "headerHeight: " + headerHeight);
     }
 
     @Override
@@ -83,20 +100,19 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        Log.d(TAG, "onScroll");
         float destX, destY;
         destX = e2.getRawX() - dX;
         destY = e2.getRawY() - dY;
 
         if (destX < 0) {
             destX = 0;
-        } else if (destX + getWidth() > deviceWidth) {
-            destX = deviceWidth - getWidth();
+        } else if (destX + getWidth() > maxWidth) {
+            destX = maxWidth - getWidth();
         }
         if (destY < 0) {
             destY = 0;
-        } else if (destY + getHeight() > deviceHeight - headerHeight) {
-            destY = deviceHeight - headerHeight - getHeight();
+        } else if (destY + getHeight() > maxHeight) {
+            destY = maxHeight - getHeight();
         }
 
         animate()
