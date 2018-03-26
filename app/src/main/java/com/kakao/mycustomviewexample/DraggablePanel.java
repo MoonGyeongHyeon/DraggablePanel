@@ -18,13 +18,14 @@ import android.widget.RelativeLayout;
 
 public class DraggablePanel extends RelativeLayout implements GestureDetector.OnGestureListener {
     public static final String TAG = "DraggablePanel";
+    private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 1000;
 
     private float dX, dY;
     private int maxWidth, maxHeight;
     private int headerHeight;   // StatusBar + Toolbar
     private GestureDetectorCompat gestureDetector;
     private boolean isLocationReverted;
-    private float currentX, currentY;
+    private float revertX, revertY;
 
 
     public DraggablePanel(Context context) {
@@ -48,6 +49,13 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         isLocationReverted = locationReverted;
     }
 
+    private void revert() {
+        animate().x(revertX)
+                .y(revertY)
+                .setDuration(REVERT_ANIMATION_DURATION_IN_MILLIS)
+                .start();
+    }
+
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
@@ -63,8 +71,8 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
             maxHeight = getHeight();
         }
 
-        currentX = getX();
-        currentY = getY();
+        revertX = getX();
+        revertY = getY();
 
         calculateHeaderHeight();
     }
@@ -87,10 +95,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         if (isLocationReverted &&
                 event.getAction() == MotionEvent.ACTION_UP) {
             Log.d(TAG, "onUp");
-            animate().x(currentX)
-                    .y(currentY)
-                    .setDuration(1000)
-                    .start();
+            revert();
         }
 
         isConsumed |= gestureDetector.onTouchEvent(event);
