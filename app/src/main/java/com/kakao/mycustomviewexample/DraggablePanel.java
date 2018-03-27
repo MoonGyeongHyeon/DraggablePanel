@@ -1,5 +1,6 @@
 package com.kakao.mycustomviewexample;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.Nullable;
@@ -20,7 +21,8 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     public static final String TAG = "DraggablePanel";
     private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 1000;
     private final int THRESHOLD = 30;
-    private final int SWITCHER_THRESHOLD = 150;
+    private final int SWITCHER_THRESHOLD = 200;
+    private final int MAX_OPACITY = 255;
 
     private GestureDetectorCompat gestureDetector;
     private OnSwitchListener listener;
@@ -37,6 +39,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     private float approachingX;
     private float maxX, maxY;
     private int switchOnBackgroundResId, switchOffBackgroundResId;
+    private int opacity;
 
 
     public DraggablePanel(Context context) {
@@ -111,7 +114,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     }
 
     private void calculateHeaderHeight() {
-        Window window= ((Activity) getContext()).getWindow();
+        Window window = ((Activity) getContext()).getWindow();
         int contentViewHeight =
                 window.findViewById(Window.ID_ANDROID_CONTENT).getHeight();
         int deviceHeight = getResources().getDisplayMetrics().heightPixels;
@@ -132,8 +135,16 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
                 isLocked = false;
                 if (isOverBoundary) {   // 스위칭
                     switching();
+                    startTranslation(approachingX, maxHeight - getHeight(), 400);
+                } else {
+                    startTranslation(approachingX, maxHeight - getHeight(), 400, new ValueAnimator.AnimatorUpdateListener() {
+                        @Override
+                        public void onAnimationUpdate(ValueAnimator animation) {
+                            opacity = (int) ((1 - animation.getAnimatedFraction()) * opacity);
+                            applyOpacityToBackground();
+                        }
+                    });
                 }
-                startTranslation(approachingX, maxHeight - getHeight(), 300);
             }
             if (isLocationReverted) {
                 revert();
@@ -157,8 +168,10 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     private void changeBackground() {
         if (isSwitchOn) {
             parent.setBackgroundResource(switchOnBackgroundResId);
+            parent.getBackground().setAlpha(MAX_OPACITY);
         } else {
             parent.setBackgroundResource(switchOffBackgroundResId);
+            parent.getBackground().setAlpha(MAX_OPACITY);
         }
     }
 
@@ -210,14 +223,19 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
 
             if (destY > maxY + SWITCHER_THRESHOLD) { // 스위치 동작 범위까지 내려갔는지.
                 destY = maxY + SWITCHER_THRESHOLD;
+                opacity = MAX_OPACITY * 2;
                 isOverBoundary = true;
-            } else if (destY < maxY){   // 잠금 해제 범위까지 올라갔는지.
+            } else if (destY < maxY) {   // 잠금 해제 범위까지 올라갔는지.
                 isAvailableBottomSwitcher = false;
                 isOverBoundary = false;
                 isLocked = false;
+                opacity = 0;
             } else {
                 isOverBoundary = false;
+                opacity = (int) (((destY - maxY) / SWITCHER_THRESHOLD) * MAX_OPACITY) * 2;
             }
+
+            applyOpacityToBackground();
 
             startTranslation(approachingX, destY, 0);
 
@@ -242,13 +260,44 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         return true;
     }
 
+    private void applyOpacityToBackground() {
+        if (isSwitchOn) {
+            if (opacity <= MAX_OPACITY) {
+                parent.setBackgroundResource(switchOnBackgroundResId);
+                parent.getBackground().setAlpha(MAX_OPACITY - opacity);
+            } else {
+                parent.setBackgroundResource(switchOffBackgroundResId);
+                parent.getBackground().setAlpha(opacity - MAX_OPACITY);
+            }
+        } else {
+            if (opacity <= MAX_OPACITY) {
+                parent.setBackgroundResource(switchOffBackgroundResId);
+                parent.getBackground().setAlpha(MAX_OPACITY - opacity);
+            } else {
+                parent.setBackgroundResource(switchOnBackgroundResId);
+                parent.getBackground().setAlpha(opacity - MAX_OPACITY);
+            }
+        }
+    }
+
     private void startTranslation(float x, float y, int duration) {
         animate()
                 .x(x)
                 .y(y)
                 .setDuration(duration)
+                .setUpdateListener(null)
                 .start();
     }
+
+    private void startTranslation(float x, float y, int duration, ValueAnimator.AnimatorUpdateListener listener) {
+        animate()
+                .x(x)
+                .y(y)
+                .setDuration(duration)
+                .setUpdateListener(listener)
+                .start();
+    }
+
 
     @Override
     public void onLongPress(MotionEvent e) {
