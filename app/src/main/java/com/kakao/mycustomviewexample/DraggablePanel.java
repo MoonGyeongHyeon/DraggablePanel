@@ -24,6 +24,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
 
     private GestureDetectorCompat gestureDetector;
     private OnSwitchListener listener;
+    private View parent;
     private float dX, dY;
     private int maxWidth, maxHeight; // 가로, 세로(상태바, 툴바 높이 제외)
     private int headerHeight;   // 상태바 + 툴바
@@ -35,6 +36,7 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     private float revertX, revertY;
     private float approachingX;
     private float maxX, maxY;
+    private int switchOnBackgroundResId, switchOffBackgroundResId;
 
 
     public DraggablePanel(Context context) {
@@ -62,6 +64,22 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         this.listener = listener;
     }
 
+    public int getSwitchOnBackgroundResId() {
+        return switchOnBackgroundResId;
+    }
+
+    public void setSwitchOnBackgroundResId(int switchOnBackgroundResId) {
+        this.switchOnBackgroundResId = switchOnBackgroundResId;
+    }
+
+    public int getSwitchOffBackgroundResId() {
+        return switchOffBackgroundResId;
+    }
+
+    public void setSwitchOffBackgroundResId(int switchOffBackgroundResId) {
+        this.switchOffBackgroundResId = switchOffBackgroundResId;
+    }
+
     public boolean isSwitchOn() {
         return isSwitchOn;
     }
@@ -73,17 +91,15 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
-        View parent = (View) getParent();
+        parent = (View) getParent();
 
-        if (parent != null) {
-            maxWidth = parent.getWidth();
-            maxHeight = parent.getHeight();
-            Log.d(TAG, "wi: " + maxWidth + ", hei: " + maxHeight);
-        } else {
-            Log.d(TAG, "here");
-            maxWidth = getWidth();
-            maxHeight = getHeight();
+        if (parent == null) {
+            parent = this;
         }
+
+        maxWidth = parent.getWidth();
+        maxHeight = parent.getHeight();
+        Log.d(TAG, "wi: " + maxWidth + ", hei: " + maxHeight);
 
         revertX = getX();
         revertY = getY();
@@ -114,12 +130,8 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
             if (isLocked) {
                 Log.d(TAG, "isLocked");
                 isLocked = false;
-                if (isOverBoundary) {   // 스위치 온
-                    if (listener != null) {
-                        isSwitchOn = !isSwitchOn;
-                        listener.onSwitch(this);
-                    }
-                    changeBackground();
+                if (isOverBoundary) {   // 스위칭
+                    switching();
                 }
                 startTranslation(approachingX, maxHeight - getHeight(), 300);
             }
@@ -134,11 +146,25 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         return isConsumed;
     }
 
+    private void switching() {
+        if (listener != null) {
+            isSwitchOn = !isSwitchOn;
+            listener.onSwitch(this);
+        }
+        changeBackground();
+    }
+
     private void changeBackground() {
         if (isSwitchOn) {
-
+            parent.setBackgroundResource(switchOnBackgroundResId);
         } else {
+            parent.setBackgroundResource(switchOffBackgroundResId);
+        }
+    }
 
+    public void notifyChangedBackground() {
+        if (parent != null) {
+            changeBackground();
         }
     }
 

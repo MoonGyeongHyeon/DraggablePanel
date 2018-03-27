@@ -13,14 +13,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final DraggablePanel draggablePanel = findViewById(R.id.draggable_panel);
+        draggablePanel.setSwitchOnBackgroundResId(R.drawable.img_switchon);
+        draggablePanel.setSwitchOffBackgroundResId(R.drawable.img_switchoff);
         draggablePanel.setOnSwitchListener(new OnSwitchListener() {
             @Override
             public void onSwitch(DraggablePanel panel) {
-                if (panel.isSwitchOn()) {
-                    
-                } else {
-
-                }
             }
         });
         draggablePanel.setOnClickListener(new View.OnClickListener() {
