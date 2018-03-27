@@ -3,43 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/wrapper"
-        android:layout_width="350dp"
-        android:layout_height="500dp"
+    <com.kakao.mycustomviewexample.DraggablePanel
+        android:id="@+id/draggable_panel"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
         android:layout_centerInParent="true"
-        android:background="@drawable/border">
+        android:background="@color/colorPrimaryDark">
 
-        <RelativeLayout
-            android:layout_width="300dp"
-            android:layout_height="440dp"
-            android:layout_centerInParent="true"
-            android:background="@drawable/border">
+        <TextView
+            android:id="@+id/textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="asdasd" />
 
-            <com.kakao.mycustomviewexample.DraggablePanel
-                android:id="@+id/draggable_panel"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:layout_centerInParent="true"
-                android:background="@color/colorPrimaryDark">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/textview"
+            android:text="vvvvvavcasdljlç" />
 
-                <TextView
-                    android:id="@+id/textview"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="asdasd" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@id/textview"
-                    android:text="vvvvvavcasdljlç" />
-
-            </com.kakao.mycustomviewexample.DraggablePanel>
-
-        </RelativeLayout>
-
-    </RelativeLayout>
+    </com.kakao.mycustomviewexample.DraggablePanel>
 
 </RelativeLayout>
 

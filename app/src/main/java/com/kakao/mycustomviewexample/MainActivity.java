@@ -12,13 +12,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        DraggablePanel draggablePanel = findViewById(R.id.draggable_panel);
+        final DraggablePanel draggablePanel = findViewById(R.id.draggable_panel);
+        draggablePanel.setOnSwitchListener(new OnSwitchListener() {
+            @Override
+            public void onSwitch(DraggablePanel panel) {
+                if (panel.isSwitchOn()) {
+                    
+                } else {
+
+                }
+            }
+        });
         draggablePanel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "LOG!");
             }
         });
-        draggablePanel.setLocationReverted(true);
+//        draggablePanel.setLocationReverted(true);
     }
 }

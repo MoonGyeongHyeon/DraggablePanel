@@ -19,13 +19,22 @@ import android.widget.RelativeLayout;
 public class DraggablePanel extends RelativeLayout implements GestureDetector.OnGestureListener {
     public static final String TAG = "DraggablePanel";
     private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 1000;
+    private final int THRESHOLD = 30;
+    private final int SWITCHER_THRESHOLD = 150;
 
-    private float dX, dY;
-    private int maxWidth, maxHeight;
-    private int headerHeight;   // StatusBar + Toolbar
     private GestureDetectorCompat gestureDetector;
+    private OnSwitchListener listener;
+    private float dX, dY;
+    private int maxWidth, maxHeight; // 가로, 세로(상태바, 툴바 높이 제외)
+    private int headerHeight;   // 상태바 + 툴바
     private boolean isLocationReverted;
+    private boolean isAvailableBottomSwitcher;
+    private boolean isLocked;
+    private boolean isOverBoundary;
+    private boolean isSwitchOn;
     private float revertX, revertY;
+    private float approachingX;
+    private float maxX, maxY;
 
 
     public DraggablePanel(Context context) {
@@ -49,11 +58,16 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         isLocationReverted = locationReverted;
     }
 
+    public void setOnSwitchListener(OnSwitchListener listener) {
+        this.listener = listener;
+    }
+
+    public boolean isSwitchOn() {
+        return isSwitchOn;
+    }
+
     private void revert() {
-        animate().x(revertX)
-                .y(revertY)
-                .setDuration(REVERT_ANIMATION_DURATION_IN_MILLIS)
-                .start();
+        startTranslation(revertX, revertY, REVERT_ANIMATION_DURATION_IN_MILLIS);
     }
 
     @Override
@@ -74,6 +88,9 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         revertX = getX();
         revertY = getY();
 
+        maxX = maxWidth - getWidth();
+        maxY = maxHeight - getHeight();
+
         calculateHeaderHeight();
     }
 
@@ -92,10 +109,23 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
 
-        if (isLocationReverted &&
-                event.getAction() == MotionEvent.ACTION_UP) {
+        if (event.getAction() == MotionEvent.ACTION_UP) {
             Log.d(TAG, "onUp");
-            revert();
+            if (isLocked) {
+                Log.d(TAG, "isLocked");
+                isLocked = false;
+                if (isOverBoundary) {   // 스위치 온
+                    if (listener != null) {
+                        isSwitchOn = !isSwitchOn;
+                        listener.onSwitch(this);
+                    }
+                    changeBackground();
+                }
+                startTranslation(approachingX, maxHeight - getHeight(), 300);
+            }
+            if (isLocationReverted) {
+                revert();
+            }
         }
 
         isConsumed |= gestureDetector.onTouchEvent(event);
@@ -104,12 +134,28 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         return isConsumed;
     }
 
+    private void changeBackground() {
+        if (isSwitchOn) {
+
+        } else {
+
+        }
+    }
+
     @Override
     public boolean onDown(MotionEvent e) {
         Log.d(TAG, "onDown");
+        isAvailableBottomSwitcher = isApproachedToBottom(e);
+
         dX = e.getRawX() - getX();
         dY = e.getRawY() - getY();
+
         return true;
+    }
+
+    private boolean isApproachedToBottom(MotionEvent e) {
+        int currentY = (int) (e.getRawY() - e.getY() + getHeight() - headerHeight);
+        return (currentY + THRESHOLD >= maxHeight);
     }
 
     @Override
@@ -129,24 +175,53 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         destX = e2.getRawX() - dX;
         destY = e2.getRawY() - dY;
 
-        if (destX < 0) {
-            destX = 0;
-        } else if (destX + getWidth() > maxWidth) {
-            destX = maxWidth - getWidth();
-        }
-        if (destY < 0) {
-            destY = 0;
-        } else if (destY + getHeight() > maxHeight) {
-            destY = maxHeight - getHeight();
+        if (isAvailableBottomSwitcher) {
+            Log.d(TAG, "Switch on");
+            if (!isLocked) {
+                isLocked = true;
+                approachingX = destX;
+            }
+
+            if (destY > maxY + SWITCHER_THRESHOLD) { // 스위치 동작 범위까지 내려갔는지.
+                destY = maxY + SWITCHER_THRESHOLD;
+                isOverBoundary = true;
+            } else if (destY < maxY){   // 잠금 해제 범위까지 올라갔는지.
+                isAvailableBottomSwitcher = false;
+                isOverBoundary = false;
+                isLocked = false;
+            } else {
+                isOverBoundary = false;
+            }
+
+            startTranslation(approachingX, destY, 0);
+
+            return true;
         }
 
-        animate()
-                .x(destX)
-                .y(destY)
-                .setDuration(0)
-                .start();
+        if (!isLocked) {
+            if (destX < 0) {
+                destX = 0;
+            } else if (destX > maxX) {
+                destX = maxX;
+            }
+            if (destY < 0) {
+                destY = 0;
+            } else if (destY > maxY) {
+                destY = maxY;
+            }
+
+            startTranslation(destX, destY, 0);
+        }
 
         return true;
+    }
+
+    private void startTranslation(float x, float y, int duration) {
+        animate()
+                .x(x)
+                .y(y)
+                .setDuration(duration)
+                .start();
     }
 
     @Override
