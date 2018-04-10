@@ -4,19 +4,23 @@ import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
-import android.widget.RelativeLayout;
+
+import com.kakao.mycustomviewexample.model.Item;
+
+import java.util.List;
 
 /**
  * Created by khan.moon on 2018. 3. 21..
  */
 
-public class DraggablePanel extends RelativeLayout implements GestureDetector.OnGestureListener {
+public class DraggablePanel extends ViewPager implements GestureDetector.OnGestureListener {
     public static final String TAG = "DraggablePanel";
     private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 1000;
 
@@ -27,22 +31,21 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
     private boolean isLocationReverted;
     private float revertX, revertY;
 
+    private ItemPagerAdapter adapter;
+    private List<Item> itemList;
 
     public DraggablePanel(Context context) {
-        this(context, null);
+        super(context, null);
     }
 
-    public DraggablePanel(Context context, @Nullable AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
-
-    public DraggablePanel(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+    public DraggablePanel(Context context, AttributeSet attrs) {
+        super(context, attrs);
         init();
     }
 
     private void init() {
         gestureDetector = new GestureDetectorCompat(getContext(), this);
+        adapter = new ItemPagerAdapter();
     }
 
     public void setLocationReverted(boolean locationReverted) {
@@ -88,16 +91,23 @@ public class DraggablePanel extends RelativeLayout implements GestureDetector.On
         Log.d(TAG, "headerHeight: " + headerHeight);
     }
 
+    public void render(List<Item> itemList) {
+        this.itemList = itemList;
+        adapter.setItemList(itemList);
+        adapter.notifyDataSetChanged();
+        setAdapter(adapter);
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
-
-        if (isLocationReverted &&
-                event.getAction() == MotionEvent.ACTION_UP) {
-            Log.d(TAG, "onUp");
-            revert();
-        }
-
+//
+//        if (isLocationReverted &&
+//                event.getAction() == MotionEvent.ACTION_UP) {
+//            Log.d(TAG, "onUp");
+//            revert();
+//        }
+//
         isConsumed |= gestureDetector.onTouchEvent(event);
         isConsumed |= super.onTouchEvent(event);
 
