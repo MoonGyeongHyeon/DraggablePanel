@@ -17,15 +17,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final DraggablePanel draggablePanel = findViewById(R.id.draggable_panel);
-        draggablePanel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d("test", "click!");
-                draggablePanel.render(createDummyData());
-            }
-        });
-//        dㅌraggablePanel.setLocationReverted(true);
+        DraggablePanel draggablePanel = findViewById(R.id.draggable_panel);
+        draggablePanel.render(createDummyData());
     }
 
     private List<Item> createDummyData() {

@@ -2,7 +2,6 @@ package com.kakao.mycustomviewexample;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.annotation.Nullable;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
@@ -81,7 +80,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     }
 
     private void calculateHeaderHeight() {
-        Window window= ((Activity) getContext()).getWindow();
+        Window window = ((Activity) getContext()).getWindow();
         int contentViewHeight =
                 window.findViewById(Window.ID_ANDROID_CONTENT).getHeight();
         int deviceHeight = getResources().getDisplayMetrics().heightPixels;
@@ -94,20 +93,20 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     public void render(List<Item> itemList) {
         this.itemList = itemList;
         adapter.setItemList(itemList);
-        adapter.notifyDataSetChanged();
+
         setAdapter(adapter);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
-//
-//        if (isLocationReverted &&
-//                event.getAction() == MotionEvent.ACTION_UP) {
-//            Log.d(TAG, "onUp");
-//            revert();
-//        }
-//
+
+        if (isLocationReverted &&
+                event.getAction() == MotionEvent.ACTION_UP) {
+            Log.d(TAG, "onUp");
+            revert();
+        }
+
         isConsumed |= gestureDetector.onTouchEvent(event);
         isConsumed |= super.onTouchEvent(event);
 
@@ -135,6 +134,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        Log.d(TAG, "onScroll");
         float destX, destY;
         destX = e2.getRawX() - dX;
         destY = e2.getRawY() - dY;

@@ -1,7 +1,6 @@
 package com.kakao.mycustomviewexample;
 
 import android.support.v4.view.PagerAdapter;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,11 +19,11 @@ public class ItemPagerAdapter extends PagerAdapter {
 
     public void setItemList(List<Item> itemList) {
         this.itemList = itemList;
+        notifyDataSetChanged();
     }
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        Log.d("test", "instantiate");
         View layout = LayoutInflater.from(container.getContext()).inflate(R.layout.item, container, false);
 
         TextView title = layout.findViewById(R.id.title);
@@ -34,7 +33,9 @@ public class ItemPagerAdapter extends PagerAdapter {
         title.setText(item.getTitle());
         desc.setText(item.getDesc());
 
-        return super.instantiateItem(container, position);
+        container.addView(layout);
+
+        return layout;
     }
 
     @Override
