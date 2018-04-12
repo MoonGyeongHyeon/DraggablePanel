@@ -23,11 +23,12 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     private final int SWIPE_MIN_DISTANCE = 50;
 
     private float dX, dY;
-    private int maxWidth, maxHeight;
+    private int maxHeight;
     private GestureDetectorCompat gestureDetector;
     private boolean isLocationReverted;
     private float revertX, revertY;
     private DragState currentState;
+    private int viewPagerState;
     private boolean isCalculated;
     private boolean isApproachingBottom;
 
@@ -35,7 +36,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     private List<Item> itemList;
 
     public enum DragState {
-        VERIFING,
+        NONE,
         VIEW_PAGER,
         PANEL
     }
@@ -52,10 +53,11 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     private void init() {
         isCalculated = false;
         isApproachingBottom = false;
+        viewPagerState = ViewPager.SCROLL_STATE_IDLE;
 
         gestureDetector = new GestureDetectorCompat(getContext(), this);
         adapter = new ItemPagerAdapter();
-        currentState = DragState.VERIFING;
+        currentState = DragState.NONE;
 
         addOnPageChangeListener(new OnPageChangeListener() {
             @Override
@@ -70,8 +72,8 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
             @Override
             public void onPageScrollStateChanged(int state) {
-//                Log.d(TAG, "Current State: " + state);
-//                currentState = state;
+                Log.d(TAG, "Current State: " + state);
+                viewPagerState = state;
             }
         });
     }
@@ -95,12 +97,10 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
             View parent = (View) getParent();
 
             if (parent != null) {
-                maxWidth = parent.getWidth();
                 maxHeight = parent.getHeight();
                 Log.d(TAG, "hei: " + maxHeight);
             } else {
                 Log.d(TAG, "here");
-                maxWidth = getWidth();
                 maxHeight = getHeight();
             }
 
@@ -133,9 +133,13 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
 
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            Log.d(TAG, "onUp");
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            if (viewPagerState == SCROLL_STATE_IDLE) {
+                currentState = DragState.NONE;
+            }
+        }
 
+        if (event.getAction() == MotionEvent.ACTION_UP) {
             if (isLocationReverted) {
                 revert();
             }
@@ -145,11 +149,9 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
                 changeSomething();
             }
-
-            return gestureDetector.onTouchEvent(event);
         }
 
-        if (currentState == DragState.VERIFING) {
+        if (currentState == DragState.NONE) {
             Log.d(TAG, "검증 중");
             isConsumed |= gestureDetector.onTouchEvent(event);
         } else if (currentState == DragState.PANEL) {
@@ -172,8 +174,6 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
         Log.d(TAG, "onDown");
         dX = e.getRawX() - getX();
         dY = e.getRawY() - getY();
-
-        currentState = DragState.VERIFING;
 
         return true;
     }
@@ -198,7 +198,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
         Log.d(TAG, "destX: " + destX + ", revertX: " + revertX);
 
         if ((destX - revertX > SWIPE_MIN_DISTANCE || revertX - destX > SWIPE_MIN_DISTANCE)
-                && currentState != DragState.PANEL) {
+                && currentState == DragState.NONE) {
             if (currentState != DragState.VIEW_PAGER) {
                 Log.d(TAG, "X 검증 완료");
                 currentState = DragState.VIEW_PAGER;
@@ -206,7 +206,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
         }
 
         if (destY - revertY > SWIPE_MIN_DISTANCE
-                && currentState != DragState.VIEW_PAGER) {
+                && currentState == DragState.NONE) {
             if (currentState != DragState.PANEL) {
                 Log.d(TAG, "Y 검증 완료");
                 currentState = DragState.PANEL;
