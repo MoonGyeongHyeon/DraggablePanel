@@ -1,7 +1,6 @@
 package com.kakao.mycustomviewexample;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
@@ -21,18 +20,25 @@ import java.util.List;
 public class DraggablePanel extends ViewPager implements GestureDetector.OnGestureListener {
     public static final String TAG = "DraggablePanel";
     private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 500;
+    private final int SWIPE_MIN_DISTANCE = 50;
 
-    private float dY;
-    private int maxHeight;
+    private float dX, dY;
+    private int maxWidth, maxHeight;
     private GestureDetectorCompat gestureDetector;
     private boolean isLocationReverted;
-    private float revertY;
-    private int currentState;
+    private float revertX, revertY;
+    private DragState currentState;
     private boolean isCalculated;
     private boolean isApproachingBottom;
 
     private ItemPagerAdapter adapter;
     private List<Item> itemList;
+
+    public enum DragState {
+        VERIFING,
+        VIEW_PAGER,
+        PANEL
+    }
 
     public DraggablePanel(Context context) {
         super(context, null);
@@ -49,7 +55,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
         gestureDetector = new GestureDetectorCompat(getContext(), this);
         adapter = new ItemPagerAdapter();
-        currentState = ViewPager.SCROLL_STATE_IDLE;
+        currentState = DragState.VERIFING;
 
         addOnPageChangeListener(new OnPageChangeListener() {
             @Override
@@ -64,7 +70,8 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
             @Override
             public void onPageScrollStateChanged(int state) {
-                currentState = state;
+//                Log.d(TAG, "Current State: " + state);
+//                currentState = state;
             }
         });
     }
@@ -88,13 +95,16 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
             View parent = (View) getParent();
 
             if (parent != null) {
+                maxWidth = parent.getWidth();
                 maxHeight = parent.getHeight();
                 Log.d(TAG, "hei: " + maxHeight);
             } else {
                 Log.d(TAG, "here");
+                maxWidth = getWidth();
                 maxHeight = getHeight();
             }
 
+            revertX = getX();
             revertY = getY();
 
             isCalculated = true;
@@ -135,10 +145,20 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
                 changeSomething();
             }
+
+            return gestureDetector.onTouchEvent(event);
         }
 
-        isConsumed |= gestureDetector.onTouchEvent(event);
-        isConsumed |= super.onTouchEvent(event);
+        if (currentState == DragState.VERIFING) {
+            Log.d(TAG, "검증 중");
+            isConsumed |= gestureDetector.onTouchEvent(event);
+        } else if (currentState == DragState.PANEL) {
+            Log.d(TAG, "드래깅 중");
+            isConsumed |= gestureDetector.onTouchEvent(event);
+        } else if (currentState == DragState.VIEW_PAGER) {
+            Log.d(TAG, "뷰페이저가 처리 중");
+            isConsumed |= super.onTouchEvent(event);
+        }
 
         return isConsumed;
     }
@@ -150,7 +170,11 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     @Override
     public boolean onDown(MotionEvent e) {
         Log.d(TAG, "onDown");
+        dX = e.getRawX() - getX();
         dY = e.getRawY() - getY();
+
+        currentState = DragState.VERIFING;
+
         return true;
     }
 
@@ -167,13 +191,32 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        Log.d(TAG, "onScroll");
-        float destY;
+        float destX, destY;
+        destX = e2.getRawX() - dX;
         destY = e2.getRawY() - dY;
 
-        if (currentState == ViewPager.SCROLL_STATE_IDLE) {
+        Log.d(TAG, "destX: " + destX + ", revertX: " + revertX);
 
+        if ((destX - revertX > SWIPE_MIN_DISTANCE || revertX - destX > SWIPE_MIN_DISTANCE)
+                && currentState != DragState.PANEL) {
+            if (currentState != DragState.VIEW_PAGER) {
+                Log.d(TAG, "X 검증 완료");
+                currentState = DragState.VIEW_PAGER;
+            }
+        }
+
+        if (destY - revertY > SWIPE_MIN_DISTANCE
+                && currentState != DragState.VIEW_PAGER) {
+            if (currentState != DragState.PANEL) {
+                Log.d(TAG, "Y 검증 완료");
+                currentState = DragState.PANEL;
+            }
+        }
+
+        if (currentState == DragState.PANEL) {
             isApproachingBottom = false;
+
+            destY -= SWIPE_MIN_DISTANCE;
 
             if (destY < revertY) {
                 destY = revertY;
@@ -202,4 +245,6 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
 
         return false;
     }
+
+
 }
