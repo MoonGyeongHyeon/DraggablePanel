@@ -1,7 +1,7 @@
 package com.kakao.mycustomviewexample;
 
-import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 
 import com.kakao.mycustomviewexample.model.Item;
 
@@ -21,14 +20,16 @@ import java.util.List;
 
 public class DraggablePanel extends ViewPager implements GestureDetector.OnGestureListener {
     public static final String TAG = "DraggablePanel";
-    private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 1000;
+    private final int REVERT_ANIMATION_DURATION_IN_MILLIS = 500;
 
-    private float dX, dY;
-    private int maxWidth, maxHeight;
-    private int headerHeight;   // StatusBar + Toolbar
+    private float dY;
+    private int maxHeight;
     private GestureDetectorCompat gestureDetector;
     private boolean isLocationReverted;
-    private float revertX, revertY;
+    private float revertY;
+    private int currentState;
+    private boolean isCalculated;
+    private boolean isApproachingBottom;
 
     private ItemPagerAdapter adapter;
     private List<Item> itemList;
@@ -43,8 +44,29 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     }
 
     private void init() {
+        isCalculated = false;
+        isApproachingBottom = false;
+
         gestureDetector = new GestureDetectorCompat(getContext(), this);
         adapter = new ItemPagerAdapter();
+        currentState = ViewPager.SCROLL_STATE_IDLE;
+
+        addOnPageChangeListener(new OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                currentState = state;
+            }
+        });
     }
 
     public void setLocationReverted(boolean locationReverted) {
@@ -52,8 +74,7 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     }
 
     private void revert() {
-        animate().x(revertX)
-                .y(revertY)
+        animate().y(revertY)
                 .setDuration(REVERT_ANIMATION_DURATION_IN_MILLIS)
                 .start();
     }
@@ -61,34 +82,35 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
-        View parent = (View) getParent();
+        Log.d(TAG, "onLayout");
 
-        if (parent != null) {
-            maxWidth = parent.getWidth();
-            maxHeight = parent.getHeight();
-            Log.d(TAG, "wi: " + maxWidth + ", hei: " + maxHeight);
-        } else {
-            Log.d(TAG, "here");
-            maxWidth = getWidth();
-            maxHeight = getHeight();
+        if (!isCalculated) {
+            View parent = (View) getParent();
+
+            if (parent != null) {
+                maxHeight = parent.getHeight();
+                Log.d(TAG, "hei: " + maxHeight);
+            } else {
+                Log.d(TAG, "here");
+                maxHeight = getHeight();
+            }
+
+            revertY = getY();
+
+            isCalculated = true;
         }
-
-        revertX = getX();
-        revertY = getY();
-
-        calculateHeaderHeight();
     }
 
-    private void calculateHeaderHeight() {
-        Window window = ((Activity) getContext()).getWindow();
-        int contentViewHeight =
-                window.findViewById(Window.ID_ANDROID_CONTENT).getHeight();
-        int deviceHeight = getResources().getDisplayMetrics().heightPixels;
-
-        headerHeight = deviceHeight - contentViewHeight;
-
-        Log.d(TAG, "headerHeight: " + headerHeight);
-    }
+//    private void calculateHeaderHeight() {
+//        Window window = ((Activity) getContext()).getWindow();
+//        int contentViewHeight =
+//                window.findViewById(Window.ID_ANDROID_CONTENT).getHeight();
+//        int deviceHeight = getResources().getDisplayMetrics().heightPixels;
+//
+//        headerHeight = deviceHeight - contentViewHeight;
+//
+//        Log.d(TAG, "headerHeight: " + headerHeight);
+//    }
 
     public void render(List<Item> itemList) {
         this.itemList = itemList;
@@ -101,10 +123,18 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     public boolean onTouchEvent(MotionEvent event) {
         boolean isConsumed = false;
 
-        if (isLocationReverted &&
-                event.getAction() == MotionEvent.ACTION_UP) {
+        if (event.getAction() == MotionEvent.ACTION_UP) {
             Log.d(TAG, "onUp");
-            revert();
+
+            if (isLocationReverted) {
+                revert();
+            }
+
+            if (isApproachingBottom) {
+                isApproachingBottom = false;
+
+                changeSomething();
+            }
         }
 
         isConsumed |= gestureDetector.onTouchEvent(event);
@@ -113,10 +143,13 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
         return isConsumed;
     }
 
+    private void changeSomething() {
+        Log.d(TAG, "changeSomething");
+    }
+
     @Override
     public boolean onDown(MotionEvent e) {
         Log.d(TAG, "onDown");
-        dX = e.getRawX() - getX();
         dY = e.getRawY() - getY();
         return true;
     }
@@ -135,26 +168,25 @@ public class DraggablePanel extends ViewPager implements GestureDetector.OnGestu
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
         Log.d(TAG, "onScroll");
-        float destX, destY;
-        destX = e2.getRawX() - dX;
+        float destY;
         destY = e2.getRawY() - dY;
 
-        if (destX < 0) {
-            destX = 0;
-        } else if (destX + getWidth() > maxWidth) {
-            destX = maxWidth - getWidth();
-        }
-        if (destY < 0) {
-            destY = 0;
-        } else if (destY + getHeight() > maxHeight) {
-            destY = maxHeight - getHeight();
-        }
+        if (currentState == ViewPager.SCROLL_STATE_IDLE) {
 
-        animate()
-                .x(destX)
-                .y(destY)
-                .setDuration(0)
-                .start();
+            isApproachingBottom = false;
+
+            if (destY < revertY) {
+                destY = revertY;
+            } else if (destY + getHeight() > maxHeight) {
+                destY = maxHeight - getHeight();
+                isApproachingBottom = true;
+            }
+
+            animate()
+                    .y(destY)
+                    .setDuration(0)
+                    .start();
+        }
 
         return true;
     }
